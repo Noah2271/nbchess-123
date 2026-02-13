@@ -1,6 +1,11 @@
 #include "Chess.h"
 #include <limits>
 #include <cmath>
+#include <string>
+#include <ctype.h>
+#include <cctype>
+
+using namespace std;
 
 Chess::Chess()
 {
@@ -46,12 +51,57 @@ void Chess::setUpBoard()
     _gameOptions.rowY = 8;
 
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
-    FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+    //numbers are empty space, lowercase is black, uppercase is white
+    FENtoBoard("rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR");
 
     startGame();
 }
-
+//
+// FEN -> Board translator function
+// draws pieces on the board based on FEN characters, starting at index 7, 7 on the top right to 0, 0 on the bottom left
+// iterates row on / and skips the numeric amount of spaces to the left for numeric chars
+//
 void Chess::FENtoBoard(const std::string& fen) {
+    int col = 7;
+    int row = 7;
+    signed int fenLength = fen.length();
+    for(int i = 0; i < fenLength; i++){
+        switch(fen[i]) {
+            case 'r' : case 'R' :
+                pieceSetFEN(col, row, fen[i], Rook);
+                col--;
+                break;
+            case 'n' : case 'N' :
+                pieceSetFEN(col, row, fen[i], Knight);
+                col--;
+                break;
+            case 'b' : case 'B' :
+                pieceSetFEN(col, row, fen[i], Bishop);
+                col--;
+                break;
+            case 'q' : case 'Q' :
+                pieceSetFEN(col, row, fen[i], Queen);
+                col--;
+                break;
+            case 'k' : case 'K' :
+                pieceSetFEN(col, row, fen[i], King);
+                col--;
+                break;
+            case 'p' : case 'P' :
+                pieceSetFEN(col, row, fen[i], Pawn);
+                col--;
+                break;
+            case '1' : case '2' : case '3' : case '4' : case '5' : case '6' : case '7' : case '8':
+                // subracting string literal 0 from numeric char converts to actual int value
+                col -= (fen[i] - '0');
+                break;
+            case '/' :
+                // new row so de-iterate row and reset column back to far right
+                row--;
+                col = 7;
+                break;
+        }
+    }
     // convert a FEN string to a board
     // FEN is a space delimited string with 6 fields
     // 1: piece placement (from white's perspective)
@@ -62,6 +112,43 @@ void Chess::FENtoBoard(const std::string& fen) {
     // 4: en passant target square (in algebraic notation, or -)
     // 5: halfmove clock (number of halfmoves since the last capture or pawn advance)
 }
+
+//
+// FEN bit setter to mitigate redundant five lines of code per case
+//
+void Chess::pieceSetFEN(int col, int row, char FENchar, ChessPiece type){
+    int playerNumber = isupper(FENchar) ? 1 : 0;
+    Bit* piece = PieceForPlayer(playerNumber, type);
+    ChessSquare* currSquare = _grid->getSquare(col, row);
+    piece->setPosition(currSquare->getPosition());
+    currSquare->setBit(piece);
+}
+
+
+
+/*
+    // Enable only dark squares and place pieces
+    _grid->forEachSquare([&](ChessSquare* square, int x, int y) {
+        bool isDark = (x + y) % 2 == 1;
+        _grid->setEnabled(x, y, isDark);
+
+        if (isDark) {
+            if (y < 3) {
+                Bit* piece = createPiece(RED_PIECE);
+                piece->setPosition(square->getPosition());
+                square->setBit(piece);
+            } else if (y > 4) {
+                Bit* piece = createPiece(YELLOW_PIECE);
+                piece->setPosition(square->getPosition());
+                square->setBit(piece);
+            }
+        }
+    });
+
+    startGame();
+}
+
+*/
 
 bool Chess::actionForEmptyHolder(BitHolder &holder)
 {

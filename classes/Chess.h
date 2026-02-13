@@ -36,12 +36,14 @@ public:
     std::string initialStateString() override;
     std::string stateString() override;
     void setStateString(const std::string &s) override;
+    
 
     Grid* getGrid() override { return _grid; }
 
 private:
     Bit* PieceForPlayer(const int playerNumber, ChessPiece piece);
     Player* ownerAt(int x, int y) const;
+    void pieceSetFEN(int col, int row, char FENchar, ChessPiece type);
     void FENtoBoard(const std::string& fen);
     char pieceNotation(int x, int y) const;
 
