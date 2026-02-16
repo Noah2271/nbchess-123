@@ -52,44 +52,45 @@ void Chess::setUpBoard()
 
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
     //numbers are empty space, lowercase is black, uppercase is white
-    FENtoBoard("rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR");
+    FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+
+
 
     startGame();
 }
 //
 // FEN -> Board translator function
-// draws pieces on the board based on FEN characters, starting at index 7, 7 on the top right to 0, 0 on the bottom left
-// iterates row on / and skips the numeric amount of spaces to the left for numeric chars
-//
+// draws pieces on the board based on FEN characters, starting at index 0, 0 on the top left and reading left to right until the
+// fen string is processed entirely
 void Chess::FENtoBoard(const std::string& fen) {
-    int col = 7;
-    int row = 7;
+    int col = 0;
+    int row = 0;
     signed int fenLength = fen.length();
     for(int i = 0; i < fenLength; i++){
         switch(fen[i]) {
             case 'r' : case 'R' :
                 pieceSetFEN(col, row, fen[i], Rook);
-                col--;
+                col++;
                 break;
             case 'n' : case 'N' :
                 pieceSetFEN(col, row, fen[i], Knight);
-                col--;
+                col++;
                 break;
             case 'b' : case 'B' :
                 pieceSetFEN(col, row, fen[i], Bishop);
-                col--;
+                col++;
                 break;
             case 'q' : case 'Q' :
                 pieceSetFEN(col, row, fen[i], Queen);
-                col--;
+                col++;
                 break;
             case 'k' : case 'K' :
                 pieceSetFEN(col, row, fen[i], King);
-                col--;
+                col++;
                 break;
             case 'p' : case 'P' :
                 pieceSetFEN(col, row, fen[i], Pawn);
-                col--;
+                col++;
                 break;
             case '1' : case '2' : case '3' : case '4' : case '5' : case '6' : case '7' : case '8':
                 // subracting string literal 0 from numeric char converts to actual int value
@@ -97,11 +98,15 @@ void Chess::FENtoBoard(const std::string& fen) {
                 break;
             case '/' :
                 // new row so de-iterate row and reset column back to far right
-                row--;
-                col = 7;
+                row++;
+                col = 0;
                 break;
+            case ' ':
+                // rest of fen string not yet implemented " w kQkq - 0 1"
+                return; 
         }
     }
+    return;
     // convert a FEN string to a board
     // FEN is a space delimited string with 6 fields
     // 1: piece placement (from white's perspective)
