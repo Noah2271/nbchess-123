@@ -17,6 +17,11 @@ Chess::~Chess()
     delete _grid;
 }
 
+//
+// documentation for my own purposes for pieceNotation
+// uses wpieces and bpieces lookup string, and for each bit for all x, y positions in a square
+// if tag is < 128, it's a white piece and if its > 128 it's a black piece. Returns that notation
+//
 char Chess::pieceNotation(int x, int y) const
 {
     const char *wpieces = { "0PNBRQK" };
@@ -24,6 +29,8 @@ char Chess::pieceNotation(int x, int y) const
     Bit *bit = _grid->getSquare(x, y)->bit();
     char notation = '0';
     if (bit) {
+        // this part returns the character from the look up corresponding to values 0-6
+        // black pieces are differentiated by 128 since pieceForPlayer will slap on +128 to black pieces for identification (P1)
         notation = bit->gameTag() < 128 ? wpieces[bit->gameTag()] : bpieces[bit->gameTag()-128];
     }
     return notation;
@@ -41,6 +48,12 @@ Bit* Chess::PieceForPlayer(const int playerNumber, ChessPiece piece)
     bit->setOwner(getPlayerAt(playerNumber));
     bit->setSize(pieceSize, pieceSize);
 
+    int tag = piece;            
+    if (playerNumber == 1)
+        tag += 128;          
+
+    bit->setGameTag(tag);
+
     return bit;
 }
 
@@ -51,7 +64,7 @@ void Chess::setUpBoard()
     _gameOptions.rowY = 8;
 
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
-    //numbers are empty space, lowercase is black, uppercase is white
+    // numbers are empty space, lowercase is black, uppercase is white
     FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
 
 
@@ -94,28 +107,24 @@ void Chess::FENtoBoard(const std::string& fen) {
                 break;
             case '1' : case '2' : case '3' : case '4' : case '5' : case '6' : case '7' : case '8':
                 // subracting string literal 0 from numeric char converts to actual int value
-                col -= (fen[i] - '0');
+                col += (fen[i] - '0');
                 break;
             case '/' :
                 // new row so de-iterate row and reset column back to far right
                 row++;
                 col = 0;
                 break;
-            case ' ':
+            default :
                 // rest of fen string not yet implemented " w kQkq - 0 1"
                 return; 
         }
     }
     return;
-    // convert a FEN string to a board
-    // FEN is a space delimited string with 6 fields
-    // 1: piece placement (from white's perspective)
-    // NOT PART OF THIS ASSIGNMENT BUT OTHER THINGS THAT CAN BE IN A FEN STRING
-    // ARE BELOW
-    // 2: active color (W or B)
-    // 3: castling availability (KQkq or -)
-    // 4: en passant target square (in algebraic notation, or -)
-    // 5: halfmove clock (number of halfmoves since the last capture or pawn advance)
+    // yet to implement
+    // 1: active color (W or B)
+    // 2: castling availability (KQkq or -)
+    // 3: en passant target square (in algebraic notation, or -)
+    // 4: halfmove clock (number of halfmoves since the last capture or pawn advance)
 }
 
 //
