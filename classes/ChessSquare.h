@@ -28,6 +28,7 @@ public:
     }
     int getColumn() { return _column; }
     int getRow() { return _row; }
+    
     int getSquareIndex() { return _row * 8 + _column; }
 
 private:

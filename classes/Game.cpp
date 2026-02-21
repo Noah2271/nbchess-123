@@ -3,7 +3,8 @@
 #include "BitHolder.h"
 #include "Turn.h"
 #include "../Application.h"
-
+#include "Bitboard.h"
+#include <cmath>
 Game::Game()
 {
 	_gameOptions.AIPlayer = false;

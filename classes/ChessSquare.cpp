@@ -58,3 +58,4 @@ void ChessSquare::setHighlighted(bool highlighted)
         _color = Lerp(_color, ImVec4(0.75, 0.79, 0.30, 1.0), 0.75);
     }
 }
+

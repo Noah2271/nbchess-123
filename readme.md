@@ -1,13 +1,7 @@
-Fork or clone your this chess project into a new GitHub repository.
+## Noah Billedo CMPM 123 - Windows PC
 
-Add support for FEN stringsLinks to an external site. to your game setup so that instead of the current way you are setting up your game board you are setting it up with a call similar to the following call.
+## Chess Implementation
 
-FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-
-Your routine should be able to take just the board position portion of a FEN string, or the entire FEN string like so:
-
-FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
-(you can ignore the end for now)
-
-This will allow you to quickly check that your castling, promotion and en passant code is working.
+### Chess.cpp
+- Contains implementation of the 8x8 game board and pawn moves. Currently uses iterative generation for moves instead of bitboards. Will likely change everything to bitboards after understanding how everything works in the iteration way first.
+- Note that the state string reads from the bottom left of the board and FEN is translated and pieces placed on the board starting from the top left.
