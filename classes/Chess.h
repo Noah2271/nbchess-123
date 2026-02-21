@@ -14,6 +14,8 @@ public:
 
     // added stuff
     void generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
+    void generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
+    void generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
     void addMove(const char *state, std::vector<BitMove>&moves, int fromRow, int fromCol, int toRow, int toCol);
     PieceColor stateColor(int col, int row);
     std::vector<BitMove> generateMoves(const char*state, char color);
