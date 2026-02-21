@@ -67,7 +67,7 @@ void Chess::setUpBoard() {
 
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
     // lower -> black | upper -> white
-    FENtoBoard("RNBQKBNR/PPPPPPPP/8/8/5K2/8/pppppppp/rnbqkbnr");
+    FENtoBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr");
 
     startGame();
 }
