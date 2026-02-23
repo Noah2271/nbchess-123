@@ -4,8 +4,18 @@
 #include <string>
 #include <ctype.h>
 #include <cctype>
+#include "Bitboard.h"
 
 using namespace std;
+
+// ==============================================================
+// global variables
+// ==============================================================
+
+int rowOffset = 0;
+int colOffset = 0;
+int bishopOffsets[4][2] = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
+int rookOffsets[4][2] = { {1,0}, {-1,0}, {0,1}, {0,-1} };
 
 // ==============================================================
 // constructors, destructors
@@ -162,8 +172,7 @@ void Chess::stopGame()
 
 std::string Chess::initialStateString() { return stateString(); }
 
-std::string Chess::stateString()
-{
+std::string Chess::stateString() {
     std::string s;
     s.reserve(64);
     _grid->forEachSquare([&](ChessSquare* square, int x, int y) {
@@ -172,8 +181,7 @@ std::string Chess::stateString()
     );
     return s;}
 
-void Chess::setStateString(const std::string &s)
-{
+void Chess::setStateString(const std::string &s) {
     _grid->forEachSquare([&](ChessSquare* square, int x, int y) {
         int index = y * 8 + x;
         char playerNumber = s[index] - '0';
@@ -200,18 +208,18 @@ bool Chess::canBitMoveFrom(Bit &bit, BitHolder &src) {
     return false;
 }
 
-bool Chess::canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst) {
-    ChessSquare* srcSquare = dynamic_cast<ChessSquare*>(&src);
-    ChessSquare* dstSquare = dynamic_cast<ChessSquare*>(&dst);
+bool Chess::canBitMoveFromTo(Bit &bit, BitHolder &from, BitHolder &to) {
+    ChessSquare* fromSquare = dynamic_cast<ChessSquare*>(&from);
+    ChessSquare* toSquare = dynamic_cast<ChessSquare*>(&to);
 
-    if(!srcSquare || !dstSquare) return false;
-
+    if(!fromSquare || !toSquare) return false;
+ 
     string state = stateString();
     char color = (bit.gameTag() <  128) ? 'W' : 'B';
     auto moves = generateMoves(state.c_str(), color);
 
-    int fromIndex = srcSquare->getRow() * 8 + srcSquare->getColumn();
-    int toIndex = dstSquare->getRow() * 8 + dstSquare->getColumn();
+    int fromIndex = fromSquare->getRow() * 8 + fromSquare->getColumn();
+    int toIndex = toSquare->getRow() * 8 + toSquare->getColumn();
 
     for(auto &move : moves){
         if(move.from == fromIndex && move.to == toIndex) return true;
@@ -226,160 +234,117 @@ PieceColor Chess::stateColor(int col, int row) {
 }
 
 void Chess::generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
-
-    int direction = (colorInt == 1) ? 1 : -1;
+    rowOffset = (colorInt == 1) ? 1 : -1; colOffset = 0;
     int startRow = (colorInt == 1) ? 1 : 6; 
-    int nextRow = row + direction;
-    char target;
-
     // forward moves
     if(row > 0 && row < 7){
-        if (nextRow >= 0 && nextRow < 8 && state[nextRow * 8 + col] == '0') {
-            addMove(state, moves, row, col, nextRow, col);
-
-            int doubleRow = row + 2 * direction;
-            if (row == startRow && state[doubleRow * 8 + col] == '0') {
-                addMove(state, moves, row, col, doubleRow, col);
-            }
-        }
-
-        // capture diagonals
-        if (col > 0) {
-            target = state[nextRow * 8 + (col - 1)];
-            if (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target)))) {
-                addMove(state, moves, row, col, nextRow, col - 1);
-            }
-        }
-        if (col < 7) {
-            target = state[nextRow * 8 + (col + 1)];
-            if (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target)))) {
-                addMove(state, moves, row, col, nextRow, col + 1);
-            }
+            calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset) * 8 + (col + colOffset)]; });
+        if(row == startRow){
+            rowOffset = rowOffset * 2;
+            calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset) * 8 + (col + colOffset)]; });
         }
     }
-}
+    // captures
+    if (col > 0) {
+        rowOffset = (colorInt == 1 ) ? 1 : -1; colOffset = -1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset) * 8 + (col + colOffset)]; });
+    }
+    if (col < 7) {
+        rowOffset = (colorInt == 1 ) ? 1 : -1; colOffset = 1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset) * 8 + (col + colOffset)]; });
+        }
+    }
 
 void Chess::generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
-    
-    char target;
-
     if (row > 0 && col < 6){
-        target = state[(row - 1) * 8 + (col + 2)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row - 1, col + 2);
-        }
+        rowOffset = -1; colOffset = 2;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (row < 7 && col < 6){
-        target = state[(row + 1) * 8 + (col + 2)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row + 1, col + 2);
-        }
+        rowOffset = 1; colOffset = 2;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (row < 7 && col > 1){
-        target = state[(row + 1) * 8 + (col - 2)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row + 1, col - 2);
-        }
+        rowOffset = 1; colOffset = -2;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (row > 0 && col > 1){
-        target = state[(row - 1) * 8 + (col - 2)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row - 1, col - 2);
-        }
+        rowOffset = -1; colOffset = -2;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (row < 6 && col > 0){
-        target = state[(row + 2) * 8 + (col - 1)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row + 2, col - 1);
-        }
+        rowOffset = 2; colOffset = -1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-    
     if (row > 1 && col > 0){
-        target = state[(row - 2) * 8 + (col - 1)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row - 2, col - 1);
-        }
+        rowOffset = -2; colOffset = -1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (row < 6 && col < 7){
-        target = state[(row + 2) * 8 + (col + 1)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row + 2, col + 1);
-        }
+        rowOffset = 2; colOffset = 1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-    
     if (row > 1 && col < 7){
-        target = state[(row - 2) * 8 + (col + 1)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row - 2, col + 1);
-        }
+        rowOffset = -2; colOffset = 1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
 }
 
 void Chess::generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
-    
-    char target;
-    
-    // straight up and down
+    // straight moves
     if (row >= 0){
-        target = state[(row + 1) * 8 + col];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row + 1, col);
-        }
+        rowOffset = 1; colOffset = 0;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (row <= 7){
-        target = state[(row - 1) * 8 + col];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row - 1, col);
-        }
+        rowOffset = -1; colOffset = 0;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
-    // side and diagonal moves
     if (col > 0){
-        target = state[row * 8 + (col - 1)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row , col - 1);
-        }
-        if(row < 7){
-        target = state[(row + 1) * 8 + (col + 1)];
-            if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-                addMove(state, moves, row, col, row + 1, col + 1);
-            }
-        }
-        if(row > 0){
-        target = state[(row - 1) * 8 + (col + 1)];
-            if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-                addMove(state, moves, row, col, row - 1, col + 1);
-            }
-        }
+        rowOffset = 0; colOffset = -1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
-
     if (col < 7){
-        target = state[row * 8 + (col + 1)];
-        if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-            addMove(state, moves, row, col, row , col + 1);
-        }
-        if(row < 7){
-        target = state[(row + 1) * 8 + (col - 1)];
-            if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-                addMove(state, moves, row, col, row + 1, col - 1);
-            }
-        }
-        if(row > 0){
-        target = state[(row - 1) * 8 + (col - 1)];
-            if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
-                addMove(state, moves, row, col, row - 1, col - 1);
-            }
-        }
+        rowOffset = 0; colOffset = 1;
+        calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
+    }
+    // diagonal moves
+    if (row >= 0 && row < 7 && col < 7){ 
+            rowOffset = 1; colOffset = 1;
+            calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
+    }
+    if (row > 0 && row <= 7 && col < 7){ 
+            rowOffset = -1; colOffset = 1;
+            calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
+    }
+    if (row >= 0 && row < 7 && col > 0){ 
+            rowOffset = 1; colOffset = -1;
+            calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
+    }
+    if (row > 0 && row <= 7 && col > 0){ 
+            rowOffset = -1; colOffset = -1;
+            calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
     }
 }
 
+void Chess::generateBishopAndRookMoves(const char* state, std::vector<BitMove>& moves, int row, int col, int colorInt, int offsets[][2], int numOffsets) {
+    for(int i = 0; i < numOffsets; i++) {
+        rowOffset = offsets[i][0];
+        colOffset = offsets[i][1];
+        int depth = 1;
+        while(true) {
+            
+            int rowIncrementValue = rowOffset * depth;
+            int colIncrementValue = colOffset * depth;
+            if(row + rowIncrementValue < 0 || row + rowIncrementValue  > 7 || col + colIncrementValue < 0 || col + colIncrementValue > 7) break;
+            calculateMoves(state, moves, row, rowIncrementValue, col, colIncrementValue, colorInt, [&]{ return state[ (row + rowIncrementValue) * 8 + (col + colIncrementValue)];});
 
+            char target = state[(row + rowIncrementValue) * 8 + (col + colIncrementValue)];
+            if (target != '0') break;
+            depth++;
+        }
+    }
+}
 
 void Chess::addMove(const char *state, vector<BitMove>& moves, int fromRow, int fromCol, int toRow, int toCol) {
     if(toRow >= 0 && toRow < 8 && toCol >= 0 && toCol < 8) {
@@ -407,6 +372,16 @@ vector<BitMove> Chess::generateMoves(const char* state, char color) {
             if(toupper(piece) == 'P') generatePawnMoves(state, moves, row, col, colorInt);
             if(toupper(piece) == 'N') generateKnightMoves(state, moves, row, col, colorInt);
             if(toupper(piece) == 'K') generateKingMoves(state, moves, row, col, colorInt);
+            if(toupper(piece) == 'R') {
+                generateBishopAndRookMoves(state, moves, row, col, colorInt, rookOffsets, 4);
+            }
+            if(toupper(piece) == 'B') {
+                generateBishopAndRookMoves(state, moves, row, col, colorInt, bishopOffsets, 4);
+            }
+            if(toupper(piece) == 'Q') {
+                generateBishopAndRookMoves(state, moves, row, col, colorInt, rookOffsets, 4);
+                generateBishopAndRookMoves(state, moves, row, col, colorInt, bishopOffsets, 4);
+            }
         }
     }
     return moves;

@@ -12,15 +12,15 @@ public:
     Chess();
     ~Chess();
 
-    // added stuff
-    void generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
-    void generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
-    void generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
-    void addMove(const char *state, std::vector<BitMove>&moves, int fromRow, int fromCol, int toRow, int toCol);
     PieceColor stateColor(int col, int row);
     std::vector<BitMove> generateMoves(const char*state, char color);
 
     void setUpBoard() override;
+    void generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
+    void generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
+    void generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
+    void generateBishopAndRookMoves(const char* state, std::vector<BitMove>& moves, int row, int col, int colorInt, int offsets[][2], int numOffsets);
+    void addMove(const char *state, std::vector<BitMove>&moves, int fromRow, int fromCol, int toRow, int toCol);
 
     bool canBitMoveFrom(Bit &bit, BitHolder &src) override;
     bool canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
@@ -37,6 +37,33 @@ public:
     
 
     Grid* getGrid() override { return _grid; }
+
+    // =================================================================
+    // move calculator for all pieces
+    // =================================================================
+    template<typename Getter>
+    void calculateMoves(const char *state, std::vector<BitMove>&moves, int row, int rowOffSet, int col, int colOffSet, int colorInt, Getter getMove)
+        {
+            char target = getMove();
+            char piece = state[row * 8 + col];
+            switch(toupper(piece)){
+                case 'P': 
+                    if(colOffSet == 0 && target == '0'){
+                        addMove(state, moves, row, col, row + rowOffSet, col + colOffSet);
+                        break;
+                    }
+                    if(colOffSet != 0 && target != '0'){
+                        addMove(state, moves, row, col, row + rowOffSet, col + colOffSet);
+                        break;
+                    }
+                    break;
+                case 'N' : case 'K' : case 'R' : case 'Q' : case 'B' :
+                    if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
+                        addMove(state, moves, row, col, row + rowOffSet, col + colOffSet);
+                    }
+                    break;
+            }
+        }
 
 private:
     Bit* PieceForPlayer(const int playerNumber, ChessPiece piece);
