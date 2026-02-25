@@ -369,16 +369,16 @@ vector<BitMove> Chess::generateMoves(const char* state, char color) {
         char piece = state[i];
         int pieceColor = (piece == '0') ? 0 : (piece < 'a') ? 1 : -1;
         if(pieceColor == colorInt){
-            if(toupper(piece) == 'P') generatePawnMoves(state, moves, row, col, colorInt);
-            if(toupper(piece) == 'N') generateKnightMoves(state, moves, row, col, colorInt);
-            if(toupper(piece) == 'K') generateKingMoves(state, moves, row, col, colorInt);
-            if(toupper(piece) == 'R') {
+            if(toupper(static_cast<unsigned char>(piece)) == 'P') generatePawnMoves(state, moves, row, col, colorInt);
+            if(toupper(static_cast<unsigned char>(piece)) == 'N') generateKnightMoves(state, moves, row, col, colorInt);
+            if(toupper(static_cast<unsigned char>(piece)) == 'K') generateKingMoves(state, moves, row, col, colorInt);
+            if(toupper(static_cast<unsigned char>(piece)) == 'R') {
                 generateBishopAndRookMoves(state, moves, row, col, colorInt, rookOffsets, 4);
             }
-            if(toupper(piece) == 'B') {
+            if(toupper(static_cast<unsigned char>(piece)) == 'B') {
                 generateBishopAndRookMoves(state, moves, row, col, colorInt, bishopOffsets, 4);
             }
-            if(toupper(piece) == 'Q') {
+            if(toupper(static_cast<unsigned char>(piece)) == 'Q') {
                 generateBishopAndRookMoves(state, moves, row, col, colorInt, rookOffsets, 4);
                 generateBishopAndRookMoves(state, moves, row, col, colorInt, bishopOffsets, 4);
             }

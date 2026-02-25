@@ -46,7 +46,7 @@ public:
         {
             char target = getMove();
             char piece = state[row * 8 + col];
-            switch(toupper(piece)){
+            switch(toupper(static_cast<unsigned char>(piece))){
                 case 'P': 
                     if(colOffSet == 0 && target == '0'){
                         addMove(state, moves, row, col, row + rowOffSet, col + colOffSet);
@@ -58,7 +58,7 @@ public:
                     }
                     break;
                 case 'N' : case 'K' : case 'R' : case 'Q' : case 'B' :
-                    if (target == '0' || (target != '0' && ((colorInt == 1 && islower(target)) || (colorInt == -1 && isupper(target))))){
+                    if (target == '0' || (target != '0' && ((colorInt == 1 && islower(static_cast<unsigned char>(target))) || (colorInt == -1 && isupper(static_cast<unsigned char>(target)))))){
                         addMove(state, moves, row, col, row + rowOffSet, col + colOffSet);
                     }
                     break;
