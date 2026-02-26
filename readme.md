@@ -9,5 +9,7 @@
 - Contains function definitions and the function template for calculateMoves() which takes an equation that applies offsets and calculates moves. This function is the function that adds the move to the vector and also contains the logic that allows pawns to perform their diagonal captures.
 
 ### Most Recent Requested Screenshots
+## Movement Vector Screenshot
 ![Vector Movement Screenshot](VectorScreenshotMovementOne.png)
+## Board Screenshot
 ![Most Recent Board Screenshot](BoardScreenshotMovementOne.png)
