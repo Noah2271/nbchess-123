@@ -40,6 +40,10 @@ public:
 
     // =================================================================
     // move calculator for all pieces
+    // takes the move specified by the callable parameter getMove and the piece at the selected index.
+    // if the piece is a pawn, switchcase to perform special capture and movement logic.
+    // otherwise go to case for other pieces that just checks if the destination is empty or has an enemy piece before
+    // adding the move to the bitMove vector
     // =================================================================
     template<typename Getter>
     void calculateMoves(const char *state, std::vector<BitMove>&moves, int row, int rowOffSet, int col, int colOffSet, int colorInt, Getter getMove)

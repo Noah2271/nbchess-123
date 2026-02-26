@@ -77,53 +77,55 @@ void Chess::setUpBoard() {
 
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
     // lower -> black | upper -> white
-    FENtoBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr");
+    FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
 
     startGame();
 }
 
 void Chess::FENtoBoard(const std::string& fen) {
+    // fen to board starts drawing from the top left now so I can have white pieces on the bottom without flipping
+    // the fen string or reading it in reverse.
     int col = 0;
-    int row = 0;
-    signed int fenLength = fen.length();
-    for(int i = 0; i < fenLength; i++){
-        switch(fen[i]) {
-            case 'r' : case 'R' :
-                pieceSetFEN(col, row, fen[i], Rook);
+    int row = 7; 
+    for (char piece : fen) {
+        switch (piece) {
+            case 'r': case 'R':
+                pieceSetFEN(col, row, piece, Rook);
                 col++;
                 break;
-            case 'n' : case 'N' :
-                pieceSetFEN(col, row, fen[i], Knight);
+            case 'n': case 'N':
+                pieceSetFEN(col, row, piece, Knight);
                 col++;
                 break;
-            case 'b' : case 'B' :
-                pieceSetFEN(col, row, fen[i], Bishop);
+            case 'b': case 'B':
+                pieceSetFEN(col, row, piece, Bishop);
                 col++;
                 break;
-            case 'q' : case 'Q' :
-                pieceSetFEN(col, row, fen[i], Queen);
+            case 'q': case 'Q':
+                pieceSetFEN(col, row, piece, Queen);
                 col++;
                 break;
-            case 'k' : case 'K' :
-                pieceSetFEN(col, row, fen[i], King);
+            case 'k': case 'K':
+                pieceSetFEN(col, row, piece, King);
                 col++;
                 break;
-            case 'p' : case 'P' :
-                pieceSetFEN(col, row, fen[i], Pawn);
+            case 'p': case 'P':
+                pieceSetFEN(col, row, piece, Pawn);
                 col++;
                 break;
-            case '1' : case '2' : case '3' : case '4' : case '5' : case '6' : case '7' : case '8':
-                col += (fen[i] - '0');
+            case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8':
+                col += (piece - '0');
                 break;
-            case '/' :
-                row++;
+            case '/':
+                row--;
                 col = 0;
                 break;
-            default :
-                return; 
+
+            default:
+                return;
         }
     }
-    return;
 }
 
 void Chess::pieceSetFEN(int col, int row, char FENchar, ChessPiece type ) {
@@ -233,6 +235,8 @@ PieceColor Chess::stateColor(int col, int row) {
     return (square->bit()->gameTag() < 128) ? WHITE : BLACK;
 }
 
+// all move generation functionality basically operates the same, checking for a valid initial position before passing piece-specific offsets into
+// the calculate moves function template that utilizes callable parameter to apply the offsets
 void Chess::generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
     rowOffset = (colorInt == 1) ? 1 : -1; colOffset = 0;
     int startRow = (colorInt == 1) ? 1 : 6; 
@@ -291,7 +295,7 @@ void Chess::generateKnightMoves(const char *state, std::vector<BitMove>& moves, 
 }
 
 void Chess::generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
-    // straight moves
+    // for my own reference, a row offset of 1 is a single space up towards the board. A col offset of 1 is one move to the right
     if (row >= 0){
         rowOffset = 1; colOffset = 0;
         calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });

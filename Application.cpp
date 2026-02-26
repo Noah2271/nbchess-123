@@ -70,7 +70,8 @@ namespace ClassGame {
                 for (int y = height; y >= 0; y--) {
                     ImGui::Text("%s", stateString.substr(y * stride, stride).c_str());
                 }
-                    ImGui::Text("Current Board State: %s", game->stateString().c_str());
+                    reverse(stateString.begin(), stateString.end());
+                    ImGui::Text("Current Board State: %s", stateString.c_str());
                 }
                 ImGui::End();
 
