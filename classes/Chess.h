@@ -12,15 +12,17 @@ public:
     Chess();
     ~Chess();
 
-    PieceColor stateColor(int col, int row);
-    std::vector<BitMove> generateMoves(const char*state, char color);
-
+    std::vector<BitMove> generateMoves(char color);
+    // debug testers
+    void printAllBoards();
+    // actual functions
     void setUpBoard() override;
-    void generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
-    void generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
-    void generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
-    void generateBishopAndRookMoves(const char* state, std::vector<BitMove>& moves, int row, int col, int colorInt, int offsets[][2], int numOffsets);
+    void generatePawnMoves(std::vector<BitMove>& moves, BitboardElement bitboards[2][7], const BitboardElement& occupancyBoard, int playerIndex);
+    void generateKnightMoves(std::vector<BitMove>& moves, BitboardElement bitboards[2][7], const BitboardElement& occupancyBoard, int playerIndex);
+    void generateKingMoves(std::vector<BitMove>& moves, BitboardElement bitboards[2][7], const BitboardElement& occupancyBoard, int playerIndex);
+    void generateSlidingMoves(std::vector<BitMove>& moves, BitboardElement bitboards[2][7], const BitboardElement& occupancyBoard, int playerIndex, int offsets[][2], int numOffsets, int pieceType);
     void addMove(const char *state, std::vector<BitMove>&moves, int fromRow, int fromCol, int toRow, int toCol);
+    virtual void bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder &dst);
 
     bool canBitMoveFrom(Bit &bit, BitHolder &src) override;
     bool canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
