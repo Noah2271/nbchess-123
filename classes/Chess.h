@@ -17,14 +17,15 @@ public:
     PieceColor stateColor(int col, int row);
     std::vector<BitMove> generateMoves(const char*state, char color);
 
-
+    bool checkForCheck(const std::string &state, int colorInt);
+    int checkForWinnerString(const std::string &state, int colorInt);
     void tryMove(std::string &state, int from, int to);
-    void undoMove(std::string &state, int from, int to, char capturedPiece);
+    void undoMove(std::string &state, int from, int to, char colorInt);
     int aiBoardEval(const std::string &state);
     bool aiTestForTerminal(const std::string &state);
-    int negamax(std::string &state, int depth, int alpha, int beta, int playerColor);
+    int negamax(std::string &state, int depth, int alpha, int beta, int colorInt);
     void updateAI() override;
-    bool checkForCheck(std::string& state, char playerColor);
+    bool checkForCheck(std::string& state, char colorChar);
     void setUpBoard() override;
     void generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
     void generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
@@ -38,7 +39,7 @@ public:
 
     void stopGame() override;
 
-    Player *checkForWinner() override;
+    Player* checkForWinner() override;
     bool checkForDraw() override;
 
     std::string initialStateString() override;

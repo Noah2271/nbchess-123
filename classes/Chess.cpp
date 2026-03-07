@@ -79,13 +79,13 @@ Bit* Chess::PieceForPlayer(const int playerNumber, ChessPiece piece) {
 
 void Chess::setUpBoard() {
     setNumberOfPlayers(2);
+    setAIPlayer(1);
     _gameOptions.rowX = 8;
     _gameOptions.rowY = 8;
 
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
     // lower -> black | upper -> white
     FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-    //FENtoBoard("8/8/8/3rrrrr/8/4K3/8/8");
     startGame();
 }
 
@@ -145,39 +145,9 @@ void Chess::pieceSetFEN(int col, int row, char FENchar, ChessPiece type ) {
 
 // ==============================================================
 // game state functions
-// includes game state checks and move generation and handling
-// for the player
+// includes state string functions and win checks
 // ==============================================================
 
-Player* Chess::ownerAt(int x, int y) const
-{
-    if (x < 0 || x >= 8 || y < 0 || y >= 8) {
-        return nullptr;
-    }
-
-    auto square = _grid->getSquare(x, y);
-    if (!square || !square->bit()) {
-        return nullptr;
-    }
-    return square->bit()->getOwner();
-}
-
-Player* Chess::checkForWinner()
-{
-    return nullptr;
-}
-
-bool Chess::checkForDraw()
-{
-    return false;
-}
-
-void Chess::stopGame()
-{
-    _grid->forEachSquare([](ChessSquare* square, int x, int y) {
-        square->destroyBit();
-    });
-}
 
 string Chess::initialStateString() { return stateString(); }
 
@@ -200,6 +170,55 @@ void Chess::setStateString(const string &s) {
             square->setBit(nullptr);
         }
     });
+}
+
+bool Chess::checkForCheck(const string &state, int colorInt) {
+    // decide what type of king function is looking for based on playerColor
+    // and get it's board position
+    char kingPiece = (colorInt == 0) ? 'K' : 'k';
+    int kingPos = -1;
+    for (int i = 0; i < 64; i++) {
+        if (state[i] == kingPiece) {
+            kingPos = i;
+            break;
+        }
+    }
+    // if king missing, checkmate/win state
+    if (kingPos == -1) return true;
+    // else generate all the moves for the enemy and see if they can capture the king
+    char enemyColor = (colorInt == 0) ? 'B' : 'W';
+    auto enemyMoves = generateMoves(state.c_str(), enemyColor);
+
+    // if any move can capture the king, it's check
+    for (auto &move : enemyMoves) {
+        if (move.to == kingPos) return true;
+    }
+    // not in check
+    return false;
+}
+
+int Chess::checkForWinnerString(const string &state, int currentPlayer) {
+    // generate player moves and determine player and enemy colors
+    char playerColor = (currentPlayer == 0) ? 'W' : 'B';
+    auto moves = generateMoves(state.c_str(), playerColor);
+    int enemyPlayer = (currentPlayer == 0) ? 1 : 0;
+
+    // safety check for no kings = win
+    if (state.find('K') == string::npos) return 1; 
+    if (state.find('k') == string::npos) return 0;
+
+    // test all moves to see if king not in check or can get out of it
+    for (auto &move : moves) {
+        string testState = state;
+        testState[move.to] = testState[move.from];
+        testState[move.from] = '0';
+
+        if (!checkForCheck(string(testState), int(currentPlayer))) {
+            return -1; 
+        }
+    }
+    // if still in check, winner is enemy
+    return enemyPlayer;
 }
 
 // ==============================================================
@@ -398,9 +417,9 @@ vector<BitMove> Chess::generateMoves(const char* state, char color) {
     return moves;
 }
 
-// ==================================================
+// ==============================================================
 // AI Functions
-// ==================================================
+// ==============================================================
 
 void Chess::tryMove(string &state, int from, int to) {
     state[to] = state[from];
@@ -422,7 +441,7 @@ int Chess::aiBoardEval(const string &state) {
     return score;
 }
 
-
+// test for terminal just checks for missing kings. checkForWinner() in terminal check is super slow
 bool Chess::aiTestForTerminal(const string &state) {
     bool whiteKing=false, blackKing=false;
     for (char c : state) {
@@ -432,24 +451,25 @@ bool Chess::aiTestForTerminal(const string &state) {
     return !whiteKing || !blackKing;
 }
 
-int Chess::negamax(string &state, int depth, int alpha, int beta, int playerColor) {
-    if(depth == 0 || aiTestForTerminal(state)) return aiBoardEval(state) * playerColor;
+int Chess::negamax(string &state, int depth, int alpha, int beta, int colorInt) {
+    if(depth == 0 || aiTestForTerminal(state)) return aiBoardEval(state) * colorInt;
 
     int bestVal = -99999;
 
-    char colorChar = (playerColor == 1) ? 'W' : 'B';
+    char colorChar = (colorInt == 1) ? 'W' : 'B';
     auto moves = generateMoves(state.c_str(), colorChar);
 
     if(moves.empty())
-        return aiBoardEval(state) * playerColor;
+        return aiBoardEval(state) * colorInt;
 
     // iterate through the moves, try each and recursively call negamax. undo moves and determine best move
     // if alpha beta threshold met, discard
     for(auto &move : moves) {
         char capturedPiece = state[move.to];
+
         tryMove(state, move.from, move.to);
 
-        int val = -negamax(state, depth-1, -beta, -alpha, -playerColor);
+        int val = -negamax(state, depth-1, -beta, -alpha, -colorInt);
 
         undoMove(state, move.from, move.to, capturedPiece);
 
@@ -476,7 +496,6 @@ void Chess::updateAI() {
         
         // test moves on the state, perform negamax base call, replace bestMove based on scores
         string state = baseState;
-
         tryMove(state, move.from, move.to);
         // negamax depth 5. Any higher and it takes forever to think/crashes on this implementation.
         int score = -negamax(state, 5-1, -99999, 99999, 1);
@@ -497,4 +516,33 @@ void Chess::updateAI() {
     activePiece->moveTo(toSquare->getPosition());
     endTurn();
 
+}
+// ==============================================================
+// other functions
+// ==============================================================
+Player* Chess::ownerAt(int x, int y) const
+{
+    return nullptr;
+}
+
+Player* Chess::checkForWinner() {
+    string state = stateString();
+    int currentPlayerIndex = getCurrentPlayer()->playerNumber();
+    // check winner by simulating on state string for currentPlayer
+    // continue game if not remaining in check via function return value
+    int winner = checkForWinnerString(state, currentPlayerIndex);
+    if(winner == -1) return nullptr;
+    return getPlayerAt(winner);
+}
+
+bool Chess::checkForDraw()
+{
+    return false;
+}
+
+void Chess::stopGame()
+{
+    _grid->forEachSquare([](ChessSquare* square, int x, int y) {
+        square->destroyBit();
+    });
 }
