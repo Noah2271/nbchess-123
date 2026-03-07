@@ -16,6 +16,12 @@ int rowOffset = 0;
 int colOffset = 0;
 int bishopOffsets[4][2] = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
 int rookOffsets[4][2] = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+static int pieceValue[128] = {0};
+
+void initPieceValues() {
+    pieceValue['P'] = 100; pieceValue['N'] = 320; pieceValue['B'] = 320; pieceValue['R'] = 500; pieceValue['Q'] = 900; pieceValue['K'] = 20000;
+    pieceValue['p'] = -100; pieceValue['n'] = -320; pieceValue['b'] = -320; pieceValue['r'] = -500; pieceValue['q'] = -900; pieceValue['k'] = -20000;
+};
 
 // ==============================================================
 // constructors, destructors
@@ -23,6 +29,7 @@ int rookOffsets[4][2] = { {1,0}, {-1,0}, {0,1}, {0,-1} };
 
 Chess::Chess()
 {
+    initPieceValues();
     _grid = new Grid(8, 8);
 }
 
@@ -58,7 +65,7 @@ Bit* Chess::PieceForPlayer(const int playerNumber, ChessPiece piece) {
     Bit* bit = new Bit();
 
     const char* pieceName = pieces[piece -1];
-    std::string spritePath = std::string("") + (playerNumber == 0 ? "w_" : "b_") + pieceName;
+    string spritePath = string("") + (playerNumber == 0 ? "w_" : "b_") + pieceName;
     bit->LoadTextureFromFile(spritePath.c_str());
     bit->setOwner(getPlayerAt(playerNumber == 0 ? 1 : 0));
     bit->setSize(pieceSize, pieceSize);
@@ -78,11 +85,11 @@ void Chess::setUpBoard() {
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
     // lower -> black | upper -> white
     FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-
+    //FENtoBoard("8/8/8/3rrrrr/8/4K3/8/8");
     startGame();
 }
 
-void Chess::FENtoBoard(const std::string& fen) {
+void Chess::FENtoBoard(const string& fen) {
     // fen to board starts drawing from the top left now so I can have white pieces on the bottom without flipping
     // the fen string or reading it in reverse.
     int col = 0;
@@ -172,10 +179,10 @@ void Chess::stopGame()
     });
 }
 
-std::string Chess::initialStateString() { return stateString(); }
+string Chess::initialStateString() { return stateString(); }
 
-std::string Chess::stateString() {
-    std::string s;
+string Chess::stateString() {
+    string s;
     s.reserve(64);
     _grid->forEachSquare([&](ChessSquare* square, int x, int y) {
             s += pieceNotation( x, y );
@@ -183,7 +190,7 @@ std::string Chess::stateString() {
     );
     return s;}
 
-void Chess::setStateString(const std::string &s) {
+void Chess::setStateString(const string &s) {
     _grid->forEachSquare([&](ChessSquare* square, int x, int y) {
         int index = y * 8 + x;
         char playerNumber = s[index] - '0';
@@ -237,7 +244,7 @@ PieceColor Chess::stateColor(int col, int row) {
 
 // all move generation functionality basically operates the same, checking for a valid initial position before passing piece-specific offsets into
 // the calculate moves function template that utilizes callable parameter to apply the offsets
-void Chess::generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
+void Chess::generatePawnMoves(const char *state, vector<BitMove>& moves, int row, int col, int colorInt) {
     rowOffset = (colorInt == 1) ? 1 : -1; colOffset = 0;
     int startRow = (colorInt == 1) ? 1 : 6; 
     // forward moves
@@ -259,7 +266,7 @@ void Chess::generatePawnMoves(const char *state, std::vector<BitMove>& moves, in
         }
     }
 
-void Chess::generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
+void Chess::generateKnightMoves(const char *state, vector<BitMove>& moves, int row, int col, int colorInt) {
     if (row > 0 && col < 6){
         rowOffset = -1; colOffset = 2;
         calculateMoves(state, moves, row, rowOffset, col, colOffset, colorInt, [&]{ return state[(row + rowOffset ) * 8 + (col + colOffset)]; });
@@ -294,7 +301,7 @@ void Chess::generateKnightMoves(const char *state, std::vector<BitMove>& moves, 
     }
 }
 
-void Chess::generateKingMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt) {
+void Chess::generateKingMoves(const char *state, vector<BitMove>& moves, int row, int col, int colorInt) {
     // for my own reference, a row offset of 1 is a single space up towards the board. A col offset of 1 is one move to the right
     if (row >= 0){
         rowOffset = 1; colOffset = 0;
@@ -331,7 +338,7 @@ void Chess::generateKingMoves(const char *state, std::vector<BitMove>& moves, in
     }
 }
 
-void Chess::generateBishopAndRookMoves(const char* state, std::vector<BitMove>& moves, int row, int col, int colorInt, int offsets[][2], int numOffsets) {
+void Chess::generateBishopAndRookMoves(const char* state, vector<BitMove>& moves, int row, int col, int colorInt, int offsets[][2], int numOffsets) {
     for(int i = 0; i < numOffsets; i++) {
         rowOffset = offsets[i][0];
         colOffset = offsets[i][1];
@@ -389,4 +396,105 @@ vector<BitMove> Chess::generateMoves(const char* state, char color) {
         }
     }
     return moves;
+}
+
+// ==================================================
+// AI Functions
+// ==================================================
+
+void Chess::tryMove(string &state, int from, int to) {
+    state[to] = state[from];
+    state[from] = '0';
+}
+
+void Chess::undoMove(string &state, int from, int to, char capturedPiece) {
+    state[from] = state[to];
+    state[to] = capturedPiece;
+}
+
+int Chess::aiBoardEval(const string &state) {
+    // iterate through the state string and add score based on values designated to each piece in pieceValue look up table
+    // created in the constructor
+    int score = 0;
+    for (char piece : state) {
+        score += pieceValue[(int)piece];
+    }
+    return score;
+}
+
+
+bool Chess::aiTestForTerminal(const string &state) {
+    bool whiteKing=false, blackKing=false;
+    for (char c : state) {
+        if(c=='K') whiteKing = true;
+        if(c=='k') blackKing=true;
+    }
+    return !whiteKing || !blackKing;
+}
+
+int Chess::negamax(string &state, int depth, int alpha, int beta, int playerColor) {
+    if(depth == 0 || aiTestForTerminal(state)) return aiBoardEval(state) * playerColor;
+
+    int bestVal = -99999;
+
+    char colorChar = (playerColor == 1) ? 'W' : 'B';
+    auto moves = generateMoves(state.c_str(), colorChar);
+
+    if(moves.empty())
+        return aiBoardEval(state) * playerColor;
+
+    // iterate through the moves, try each and recursively call negamax. undo moves and determine best move
+    // if alpha beta threshold met, discard
+    for(auto &move : moves) {
+        char capturedPiece = state[move.to];
+        tryMove(state, move.from, move.to);
+
+        int val = -negamax(state, depth-1, -beta, -alpha, -playerColor);
+
+        undoMove(state, move.from, move.to, capturedPiece);
+
+        bestVal = max(bestVal, val);
+        alpha = max(alpha, val);
+
+        if(alpha >= beta)
+            break;
+    }
+    return bestVal;
+}
+
+void Chess::updateAI() {
+
+    // generate all possible moves to be scored by negamax
+    string baseState = stateString();
+    auto moves = generateMoves(baseState.c_str(), 'B');
+    if(moves.empty()) return;
+
+    int bestScore = -99999;
+    BitMove bestMove = moves[0];
+
+    for(auto &move : moves) {
+        
+        // test moves on the state, perform negamax base call, replace bestMove based on scores
+        string state = baseState;
+
+        tryMove(state, move.from, move.to);
+        // negamax depth 5. Any higher and it takes forever to think/crashes on this implementation.
+        int score = -negamax(state, 5-1, -99999, 99999, 1);
+
+        if(score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+        }
+    }
+
+    // convert move indices to grid, take the move, end the turn
+    ChessSquare* fromSquare = _grid->getSquare(bestMove.from % 8, bestMove.from / 8);
+    ChessSquare* toSquare   = _grid->getSquare(bestMove.to % 8, bestMove.to / 8);
+
+    Bit* activePiece = fromSquare->bit();
+    toSquare->setBit(activePiece);
+    fromSquare->setBit(nullptr);
+    activePiece->moveTo(toSquare->getPosition());
+    endTurn();
+
 }

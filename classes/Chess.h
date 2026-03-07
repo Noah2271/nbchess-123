@@ -7,6 +7,8 @@
 constexpr int pieceSize = 80;
 enum PieceColor { EMPTY, WHITE, BLACK };
 class Chess : public Game
+
+
 {
 public:
     Chess();
@@ -15,6 +17,14 @@ public:
     PieceColor stateColor(int col, int row);
     std::vector<BitMove> generateMoves(const char*state, char color);
 
+
+    void tryMove(std::string &state, int from, int to);
+    void undoMove(std::string &state, int from, int to, char capturedPiece);
+    int aiBoardEval(const std::string &state);
+    bool aiTestForTerminal(const std::string &state);
+    int negamax(std::string &state, int depth, int alpha, int beta, int playerColor);
+    void updateAI() override;
+    bool checkForCheck(std::string& state, char playerColor);
     void setUpBoard() override;
     void generatePawnMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
     void generateKnightMoves(const char *state, std::vector<BitMove>& moves, int row, int col, int colorInt);
@@ -78,5 +88,6 @@ private:
     
     Grid* _grid;
 
+    Bit* animatingPiece = nullptr;
     
 };

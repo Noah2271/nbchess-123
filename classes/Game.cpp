@@ -240,11 +240,12 @@ bool Game::animateAndPlaceBitFromTo(Bit &bit, BitHolder &src, BitHolder &dst)
 
 bool Game::gameHasAI()
 {
-	return false;
+	return true;
 }
 
 void Game::updateAI()
 {
+	std::cout << "non-overriden updateAI()" << std::endl;
 }
 
 void Game::mouseDown(ImVec2 &location, Entity *entity)

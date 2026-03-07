@@ -60,6 +60,7 @@ namespace ClassGame {
                     if (ImGui::Button("Start Chess")) {
                         game = new Chess();
                         game->setUpBoard();
+                        game->setAIPlayer(1);
                     }
                 } else {
                     ImGui::Text("Current Player Number: %d", game->getCurrentPlayer()->playerNumber());
